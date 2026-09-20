@@ -44,3 +44,19 @@ make docker-down
 make docker-ps
 make docker-logs
 ```
+
+## Testes
+
+Os testes do backend utilizam Pytest.
+
+Para executar os testes:
+
+```bash
+make test
+```
+
+Para executar os testes em modo detalhado:
+
+```bash
+make test-verbose
+```
