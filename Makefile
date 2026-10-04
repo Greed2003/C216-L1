@@ -1,4 +1,4 @@
-﻿.PHONY: help docker-build docker-up docker-down docker-ps docker-logs
+﻿.PHONY: help docker-build docker-up docker-down docker-ps docker-logs test test-verbose
 
 help:
 	@echo Comandos disponiveis:
@@ -22,3 +22,9 @@ docker-ps:
 
 docker-logs:
 	docker compose logs api
+
+test:
+	cd backend && poetry run pytest
+
+test-verbose:
+	cd backend && poetry run pytest -v
