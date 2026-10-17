@@ -1,43 +1,113 @@
-from fastapi import APIRouter
+from typing import Annotated
 
-from app.schemas.item import ItemCreate, ItemUpdate
+from fastapi import APIRouter, Depends, HTTPException, status
+from sqlalchemy.orm import Session
+
+from app.database.session import get_db
+from app.repositories.item import ItemRepository
+from app.schemas.item import ItemCreate, ItemRead, ItemUpdate
 from app.services.item import (
-    create_item,
-    delete_item,
-    get_item,
-    list_items,
-    replace_item,
-    update_item,
+    ItemAlreadyExistsError,
+    ItemNotFoundError,
+    ItemService,
 )
 
 router = APIRouter(prefix="/items", tags=["Items"])
 
-
-@router.get("/")
-def list_items_endpoint(limit: int = 10):
-    return list_items(limit)
+DbSession = Annotated[Session, Depends(get_db)]
 
 
-@router.get("/{item_id}")
-def get_item_endpoint(item_id: int):
-    return get_item(item_id)
+def get_service(db: DbSession) -> ItemService:
+    return ItemService(ItemRepository(db))
 
 
-@router.post("/")
-def create_item_endpoint(item: ItemCreate):
-    return create_item(item)
+ItemServiceDependency = Annotated[ItemService, Depends(get_service)]
 
 
-@router.put("/{item_id}")
-def replace_item_endpoint(item_id: int, item: ItemCreate):
-    return replace_item(item_id, item)
+@router.get("/", response_model=list[ItemRead])
+def list_items(
+    service: ItemServiceDependency,
+    skip: int = 0,
+    limit: int = 100,
+):
+    return service.list(skip, limit)
 
 
-@router.patch("/{item_id}")
-def update_item_endpoint(item_id: int, item: ItemUpdate):
-    return update_item(item_id, item)
+@router.get("/{item_id}", response_model=ItemRead)
+def get_item(item_id: int, service: ItemServiceDependency):
+    try:
+        return service.get(item_id)
+    except ItemNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item não encontrado",
+        ) from exc
 
 
-@router.delete("/{item_id}")
-def delete_item_endpoint(item_id: int):
-    return delete_item(item_id)
+@router.post(
+    "/",
+    response_model=ItemRead,
+    status_code=status.HTTP_201_CREATED,
+)
+def create_item(item: ItemCreate, service: ItemServiceDependency):
+    try:
+        return service.create(item)
+    except ItemAlreadyExistsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Item já existe",
+        ) from exc
+
+
+@router.put("/{item_id}", response_model=ItemRead)
+def replace_item(
+    item_id: int,
+    item: ItemUpdate,
+    service: ItemServiceDependency,
+):
+    try:
+        return service.update(item_id, item)
+    except ItemNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item não encontrado",
+        ) from exc
+    except ItemAlreadyExistsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Item já existe",
+        ) from exc
+
+
+@router.patch("/{item_id}", response_model=ItemRead)
+def update_item(
+    item_id: int,
+    item: ItemUpdate,
+    service: ItemServiceDependency,
+):
+    try:
+        return service.update(item_id, item)
+    except ItemNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item não encontrado",
+        ) from exc
+    except ItemAlreadyExistsError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail="Item já existe",
+        ) from exc
+
+
+@router.delete(
+    "/{item_id}",
+    status_code=status.HTTP_204_NO_CONTENT,
+)
+def delete_item(item_id: int, service: ItemServiceDependency):
+    try:
+        service.delete(item_id)
+    except ItemNotFoundError as exc:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Item não encontrado",
+        ) from exc
