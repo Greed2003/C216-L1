@@ -1,4 +1,6 @@
-﻿.PHONY: help install test lint format run up up-build down build logs logs-api ps shell clean db-upgrade db-migration db-current
+PATH := C:/Program Files/nodejs;$(PATH)
+
+.PHONY: help install test lint format run up up-build down build logs logs-api ps shell clean db-upgrade db-migration db-current
 
 POETRY := poetry -C backend
 PYTEST := $(POETRY) run pytest
@@ -80,27 +82,29 @@ db-current:
 .PHONY: frontend-install frontend-dev frontend-lint frontend-format frontend-check frontend-test frontend-test-e2e frontend-build check-all
 
 frontend-install:
-	npm --prefix frontend ci
+	npm.cmd --prefix frontend ci
 
 frontend-dev:
-	npm --prefix frontend run dev
+	npm.cmd --prefix frontend run dev
 
 frontend-lint:
-	npm --prefix frontend run lint
+	npm.cmd --prefix frontend run lint
 
 frontend-format:
-	npm --prefix frontend run format
+	npm.cmd --prefix frontend run format
 
 frontend-check:
-	npm --prefix frontend run check
+	npm.cmd --prefix frontend run check
 
 frontend-test:
-	npm --prefix frontend run test
+	npm.cmd --prefix frontend run test
 
 frontend-test-e2e:
-	npm --prefix frontend run test:e2e
+	npm.cmd --prefix frontend run test:e2e
 
 frontend-build:
-	npm --prefix frontend run build
+	npm.cmd --prefix frontend run build
 
 check-all: lint test frontend-check frontend-test frontend-build frontend-test-e2e
+
+
