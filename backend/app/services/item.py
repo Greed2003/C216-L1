@@ -1,29 +1,50 @@
+from app.models.item import Item
+from app.repositories.item import ItemRepository
 from app.schemas.item import ItemCreate, ItemUpdate
 
 
-def list_items(limit: int = 10):
-    items = [
-        {"id": 1, "name": "Item 1", "description": None},
-        {"id": 2, "name": "Item 2", "description": None},
-    ]
-    return items[:limit]
+class ItemNotFoundError(Exception):
+    pass
 
 
-def get_item(item_id: int):
-    return {"id": item_id, "name": f"Item {item_id}", "description": None}
+class ItemAlreadyExistsError(Exception):
+    pass
 
 
-def create_item(item: ItemCreate):
-    return {"id": 1, **item.model_dump()}
+class ItemService:
+    """Regras de negócio dos itens. Não conhece HTTP nem SQL."""
 
+    def __init__(self, repository: ItemRepository):
+        self.repository = repository
 
-def replace_item(item_id: int, item: ItemCreate):
-    return {"id": item_id, **item.model_dump()}
+    def create(self, data: ItemCreate) -> Item:
+        if self.repository.get_by_name(data.name):
+            raise ItemAlreadyExistsError(data.name)
 
+        return self.repository.create(data.name, data.description)
 
-def update_item(item_id: int, item: ItemUpdate):
-    return {"id": item_id, **item.model_dump(exclude_none=True)}
+    def get(self, item_id: int) -> Item:
+        item = self.repository.get_by_id(item_id)
 
+        if item is None:
+            raise ItemNotFoundError(item_id)
 
-def delete_item(item_id: int):
-    return {"deleted": item_id}
+        return item
+
+    def list(self, skip: int = 0, limit: int = 100) -> list[Item]:
+        return self.repository.get_all(skip, limit)
+
+    def update(self, item_id: int, data: ItemUpdate) -> Item:
+        item = self.get(item_id)
+        changes = data.model_dump(exclude_unset=True)
+
+        if changes.get("name") is not None and self.repository.get_by_name(
+            changes["name"]
+        ):
+            raise ItemAlreadyExistsError(changes["name"])
+
+        return self.repository.update(item, changes)
+
+    def delete(self, item_id: int) -> None:
+        item = self.get(item_id)
+        self.repository.delete(item)

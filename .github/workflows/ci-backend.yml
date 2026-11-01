@@ -46,6 +46,24 @@ jobs:
     name: Pytest
     runs-on: ubuntu-latest
 
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_DB: app
+          POSTGRES_USER: app
+          POSTGRES_PASSWORD: app
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U app -d app"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 5
+
+    env:
+      DATABASE_URL: postgresql+psycopg://app:app@localhost:5432/app
+
     defaults:
       run:
         working-directory: backend
@@ -66,6 +84,9 @@ jobs:
 
       - name: Install Dependencies
         run: poetry install --no-root
+
+      - name: Run Migrations
+        run: poetry run alembic upgrade head
 
       - name: Run Tests
         run: poetry run pytest
