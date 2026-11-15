@@ -1,6 +1,11 @@
+ifeq ($(OS),Windows_NT)
+NPM := npm.cmd
+else
+NPM := npm
+endif
 PATH := C:/Program Files/nodejs;$(PATH)
 
-.PHONY: help install test lint format run up up-build down build logs logs-api ps shell clean db-upgrade db-migration db-current
+.PHONY: help install test lint format run up up-build down build logs logs-api ps shell clean db-upgrade db-migration db-current e2e
 
 POETRY := poetry -C backend
 PYTEST := $(POETRY) run pytest
@@ -82,29 +87,32 @@ db-current:
 .PHONY: frontend-install frontend-dev frontend-lint frontend-format frontend-check frontend-test frontend-test-e2e frontend-build check-all
 
 frontend-install:
-	npm.cmd --prefix frontend ci
+	$(NPM) --prefix frontend ci
 
 frontend-dev:
-	npm.cmd --prefix frontend run dev
+	$(NPM) --prefix frontend run dev
 
 frontend-lint:
-	npm.cmd --prefix frontend run lint
+	$(NPM) --prefix frontend run lint
 
 frontend-format:
-	npm.cmd --prefix frontend run format
+	$(NPM) --prefix frontend run format
 
 frontend-check:
-	npm.cmd --prefix frontend run check
+	$(NPM) --prefix frontend run check
 
 frontend-test:
-	npm.cmd --prefix frontend run test
+	$(NPM) --prefix frontend run test
 
-frontend-test-e2e:
-	npm.cmd --prefix frontend run test:e2e
+frontend-test-e2e: e2e
+
 
 frontend-build:
-	npm.cmd --prefix frontend run build
+	$(NPM) --prefix frontend run build
 
-check-all: lint test frontend-check frontend-test frontend-build frontend-test-e2e
+check-all: lint test frontend-check frontend-test frontend-build e2e
 
 
+
+e2e:
+	poetry -C backend run python ../scripts/run_e2e.py

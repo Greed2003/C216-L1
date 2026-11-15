@@ -1,16 +1,25 @@
-﻿name: CI - Frontend
+name: CI - Frontend
 
 on:
   pull_request:
     paths:
       - "frontend/**"
+      - "backend/**"
+      - "compose.yaml"
+      - "compose.e2e.yaml"
+      - "scripts/**"
+      - "Makefile"
       - ".github/workflows/ci-frontend.yml"
-
   push:
     branches:
       - main
     paths:
       - "frontend/**"
+      - "backend/**"
+      - "compose.yaml"
+      - "compose.e2e.yaml"
+      - "scripts/**"
+      - "Makefile"
       - ".github/workflows/ci-frontend.yml"
 
 jobs:
@@ -43,10 +52,7 @@ jobs:
     name: Format, Tests, Build and E2E
     needs: lint
     runs-on: ubuntu-latest
-
-    defaults:
-      run:
-        working-directory: frontend
+    timeout-minutes: 20
 
     steps:
       - name: Checkout
@@ -59,23 +65,33 @@ jobs:
           cache: npm
           cache-dependency-path: frontend/package-lock.json
 
-      - name: Install dependencies
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install frontend dependencies
+        working-directory: frontend
         run: npm ci
 
       - name: Check formatting
+        working-directory: frontend
         run: npm run format:check
 
-      - name: Run tests
+      - name: Run unit and integration tests
+        working-directory: frontend
         run: npm run test
 
       - name: Build
+        working-directory: frontend
         run: npm run build
 
       - name: Install Chromium
+        working-directory: frontend
         run: npx playwright install --with-deps chromium
 
-      - name: Run E2E
-        run: npm run test:e2e
+      - name: Run full-stack E2E
+        run: python scripts/run_e2e.py
 
       - name: Upload Playwright report
         if: failure()

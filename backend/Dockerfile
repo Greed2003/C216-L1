@@ -1,4 +1,4 @@
-﻿FROM python:3.11-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
@@ -12,6 +12,8 @@ RUN pip install --no-cache-dir poetry \
     && poetry install --only main --no-interaction --no-ansi --no-root
 
 COPY app ./app
+COPY alembic ./alembic
+COPY alembic.ini ./alembic.ini
 
 
 EXPOSE 8000
