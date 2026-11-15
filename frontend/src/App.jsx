@@ -1,17 +1,50 @@
-﻿import { useState } from "react";
+﻿import { useEffect, useState } from "react";
 
 import { ItemForm } from "./components/ItemForm";
 import { ItemList } from "./components/ItemList";
+import { createItem, listItems } from "./services/items";
 
 export default function App() {
   const [items, setItems] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
 
-  // Na Prática 7, esta função passará a chamar a API (POST /items).
-  function addItem({ name, description }) {
-    setItems((current) => [
-      ...current,
-      { id: crypto.randomUUID(), name, description },
-    ]);
+  useEffect(() => {
+    let active = true;
+
+    async function loadItems() {
+      try {
+        const loadedItems = await listItems();
+
+        if (active) {
+          setItems(loadedItems);
+        }
+      } catch (error) {
+        if (active) {
+          const message =
+            error instanceof Error
+              ? error.message
+              : "Erro ao carregar os itens.";
+
+          setLoadError(message);
+        }
+      } finally {
+        if (active) {
+          setLoading(false);
+        }
+      }
+    }
+
+    loadItems();
+
+    return () => {
+      active = false;
+    };
+  }, []);
+
+  async function addItem(values) {
+    const created = await createItem(values);
+    setItems((current) => [...current, created]);
   }
 
   return (
@@ -25,7 +58,17 @@ export default function App() {
           Itens cadastrados
         </h2>
 
-        <ItemList items={items} />
+        {loading && (
+          <p className="text-sm text-slate-600">Carregando itens...</p>
+        )}
+
+        {loadError && (
+          <p role="alert" className="text-sm text-red-700">
+            {loadError}
+          </p>
+        )}
+
+        {!loading && !loadError && <ItemList items={items} />}
       </section>
     </main>
   );

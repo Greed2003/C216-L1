@@ -1,4 +1,4 @@
-﻿import { render, screen } from "@testing-library/react";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { expect, it, vi } from "vitest";
 
@@ -14,4 +14,25 @@ it("mostra erro e não chama onAdd com nome vazio", async () => {
 
   expect(screen.getByRole("alert")).toHaveTextContent("O nome é obrigatório.");
   expect(onAdd).not.toHaveBeenCalled();
+});
+
+it("mantém os dados digitados quando a API rejeita o cadastro", async () => {
+  const user = userEvent.setup();
+
+  const onAdd = vi
+    .fn()
+    .mockRejectedValue(new Error("Já existe um item com esse nome."));
+
+  render(<ItemForm onAdd={onAdd} />);
+
+  await user.type(screen.getByLabelText("Nome"), "Notebook");
+  await user.type(screen.getByLabelText("Descrição"), "14 polegadas");
+  await user.click(screen.getByRole("button", { name: "Adicionar" }));
+
+  expect(await screen.findByRole("alert")).toHaveTextContent(
+    "Já existe um item com esse nome.",
+  );
+
+  expect(screen.getByLabelText("Nome")).toHaveValue("Notebook");
+  expect(screen.getByLabelText("Descrição")).toHaveValue("14 polegadas");
 });
