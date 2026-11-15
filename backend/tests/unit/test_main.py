@@ -1,4 +1,7 @@
 import pytest
+from fastapi.testclient import TestClient
+
+from app.main import app
 
 
 def soma(a, b):
@@ -11,7 +14,7 @@ def eh_par(numero):
 
 def dividir(a, b):
     if b == 0:
-        raise ValueError("divisão por zero")
+        raise ValueError("divisÃ£o por zero")
 
     return a / b
 
@@ -56,3 +59,36 @@ def test_eh_par(numero, esperado):
 
 def test_nome_usuario(usuario):
     assert usuario["nome"] == "Maria"
+
+
+client = TestClient(app)
+
+
+def test_cors_origem_permitida():
+    origin = "http://localhost:5173"
+
+    response = client.options(
+        "/items/",
+        headers={
+            "Origin": origin,
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 200
+    assert response.headers["access-control-allow-origin"] == origin
+
+
+def test_cors_origem_desconhecida():
+    response = client.options(
+        "/items/",
+        headers={
+            "Origin": "https://origem-desconhecida.example",
+            "Access-Control-Request-Method": "POST",
+            "Access-Control-Request-Headers": "content-type",
+        },
+    )
+
+    assert response.status_code == 400
+    assert "access-control-allow-origin" not in response.headers
